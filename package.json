@@ -1,0 +1,15 @@
+{
+  "name": "project_void",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Saba Bakuradze",
+  "license": "ISC",
+  "description": "LLM antropy token comresion",
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0"
+  }
+}

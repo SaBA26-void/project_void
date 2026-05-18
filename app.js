@@ -1,79 +1,87 @@
 import { AutoTokenizer, AutoModelForCausalLM } from "@huggingface/transformers";
 
-const promt = "What is the capital city of France?";
-
-async function run() {
-    const tokenizer = await AutoTokenizer.from_pretrained("Xenova/gpt2");
-    const model = await AutoModelForCausalLM.from_pretrained("Xenova/gpt2");
-    // Xenova/Qwen1.5-0.5B-Chat
-
-    const encoded = await tokenizer(promt);
-    const keyTensorsArr = await encoded['input_ids']['ort_tensor']['cpuData'];
-    const attention = encoded['attention_mask'];
-
-    // console.log("full data: \n", encoded, "\n \n");
-    // console.log("keyTensor \n", keyTensorsArr, "\n \n")
-    // console.log("attention \n", attention, "\n \n")
-
-    const modelGen = await model(encoded);
-    const logitsData = await modelGen['logits']//['ort_tensor']['cpuData'];
-    const logitsArr = [...modelGen['logits']['ort_tensor']['cpuData']];
-    const dimSize = modelGen['logits']['ort_tensor']['dims'][2];
-    // const data1 = logitsData['ort_tensor']
-    // const data = data1['cpuData']
-    // console.log("logitsArr \n", logitsArr.length, "\n");
-    // console.log("data", data)
-
+// 1. Pure Function: Slice 1D flat tensor array into a 2D matrix (Tokens x Vocabulary)
+const chunkTensor = (tensorData, vocabSize) => {
     const chunks = [];
-    function chopper() {
-        chunks;
-        for (let i = 0; i < keyTensorsArr.length; i++) {
-            chunks.push(logitsArr.slice(i * dimSize, ((i * dimSize) + dimSize)));
-            console.log("start: ", i * dimSize, " ", "end: ", ((i * dimSize) + dimSize));
-        }
-        // console.log(chunks.map(c => c.length));
-        return chunks;
-    };
-    chopper();
-    // console.log("chunks", chunks);
+    const numTokens = tensorData.length / vocabSize;
 
-    function softMax(chunks) {
-        let e = Math.E;
-        const probChunks = [];
-        const maxProbChunks = [];
-        const onesChuncks = [];
+    for (let i = 0; i < numTokens; i++) {
+        const start = i * vocabSize;
+        const end = start + vocabSize;
+        chunks.push(tensorData.subarray(start, end));
+    }
+    return chunks;
+};
 
-        for (const arr of chunks) {
-
-            const max = Math.max(...arr);
-            const expsArr = arr.map(item => e ** (item - max));
-            const sum = expsArr.reduce((acc, curr) => acc + curr, 0);
-
-            if (sum === 0) {
-                const n = expsArr.length;
-                probChunks.push(Array(n).fill(1 / n));
-                continue;
-            }
-
-            const probs = expsArr.map(p => p / sum);
-            const maxP = Math.max(...probs);
-            probChunks.push(probs);
-            maxProbChunks.push(maxP);
-            const isOne = probs.reduce((acc, curr) => acc + curr, 0);
-            onesChuncks.push(isOne);
-        }
-
-        // return maxProbChunks;
-        return probChunks;
-        // return onesChuncks;
+// 2. Pure Function: Numerically stable Softmax for a single token slice
+const computeSoftmax = (logits) => {
+    let maxLogit = -Infinity;
+    for (let i = 0; i < logits.length; i++) {
+        if (logits[i] > maxLogit) maxLogit = logits[i];
     }
 
-    console.log(softMax(chunks));
-    const probs = softMax(chunks);
-    const probChunks = softMax(chunks);
+    const probabilities = new Float32Array(logits.length);
+    let sumExp = 0;
 
+    for (let i = 0; i < logits.length; i++) {
+        const expVal = Math.exp(logits[i] - maxLogit);
+        probabilities[i] = expVal;
+        sumExp += expVal;
+    }
 
+    for (let i = 0; i < probabilities.length; i++) {
+        probabilities[i] /= sumExp;
+    }
 
-}
+    return probabilities;
+};
 
-run();
+// 3. Main Execution Function
+const analyzePromptProbabilities = async (promptText) => {
+    const modelName = "Xenova/gpt2";
+
+    try {
+        const tokenizer = await AutoTokenizer.from_pretrained(modelName);
+        const model = await AutoModelForCausalLM.from_pretrained(modelName);
+
+        // Tokenize prompt to get sequence input IDs
+        const encoded = await tokenizer(promptText);
+        const inputIds = encoded.input_ids.data; // Int32Array of token IDs
+
+        // Run the model forward pass
+        const modelGen = await model(encoded);
+        const tensorData = modelGen.logits.data;
+        const vocabSize = modelGen.logits.dims[2];
+
+        // Break the raw logits down by sequence positions
+        const logitChunks = chunkTensor(tensorData, vocabSize);
+
+        console.log(`\nAnalyzing sequence probabilities for: "${promptText}"\n`);
+        console.log(`------------------------------------------------------------`);
+
+        // We loop up to logitChunks.length - 1 because the very last chunk 
+        // predicts a future token outside our current prompt.
+        for (let i = 0; i < logitChunks.length - 1; i++) {
+            const currentTokenId = inputIds[i];
+            const nextTokenId = inputIds[i + 1];
+
+            const currentTokenText = tokenizer.decode([currentTokenId]);
+            const nextTokenText = tokenizer.decode([nextTokenId]);
+
+            // Transform raw logits at step i to a valid probability distribution
+            const probabilities = computeSoftmax(logitChunks[i]);
+
+            // Look up the probability assigned to the token that actually followed
+            const actualTokenProbability = probabilities[nextTokenId];
+            const percentage = (actualTokenProbability * 100).toFixed(4);
+
+            console.log(`Given: [${currentTokenText.trim()}] -> Probability of next token [${nextTokenText.trim()}]: ${percentage}%`);
+        }
+        console.log(`------------------------------------------------------------`);
+
+    } catch (error) {
+        console.error("Error analyzing sequence:", error);
+    }
+};
+
+analyzePromptProbabilities("What is the capital city of France?");

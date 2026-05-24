@@ -29,7 +29,7 @@ import { chopper } from "./chopper.js";
 import { softMax } from "./Softmax.js";
 import { computeEntropy } from "./entropy.js";
 import { tokenProbMaper } from "./Probability.js";
-import { mergeSubTokensToWords } from "../merger.js";
+import { mergeSubTokensToWords } from "./merger.js";
 import { compressAndJoin } from "./compressor.js";
 
 const MODEL_ID = "Xenova/gpt2";

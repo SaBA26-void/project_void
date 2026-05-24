@@ -19,7 +19,6 @@ const result = await compressPrompt("Xenova/gpt2", prompt, {
 // --------------------
 // OUTPUT
 // --------------------
-
 const originalTokenCount =
   result.kept.reduce((s, w) => s + w.tokenCount, 0) +
   result.removed.reduce((s, w) => s + w.tokenCount, 0);

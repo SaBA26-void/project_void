@@ -1,42 +1,48 @@
 /**
  * compressor.js
- * Filters out high-probability (predictable) words and reconstructs
+ * Filters words using probability and/or Shannon entropy, then reconstructs
  * the compressed string.
  *
- * Original built the output string with += inside a loop — O(W²) in the
- * worst case because each concatenation may copy the growing string.
- * Optimised: collect parts into an array, join once at the end — O(W).
+ * Each word object arriving from mergeSubTokensToWords already has:
+ *   word.probability  — joint probability of the word's sub-tokens
+ *   word.entropy      — avg Shannon entropy across the word's positions (bits)
+ *                       (annotated in index.js from entropiesArr)
  *
- * Complexity: O(W) time  |  O(W) space  (W = word count)
+ * ─── Keep logic ──────────────────────────────────────────────────────────────
+ * A word is KEPT if EITHER signal marks it as informative:
+ *
+ *   probability < probThreshold     → model assigned it low chance (surprising)
+ *   entropy     > entropyThreshold  → model was uncertain before it (ambiguous)
+ *
+ * A word is REMOVED only when BOTH signals agree it was predictable.
+ * entropyThreshold defaults to -Infinity so passing no entropy threshold
+ * falls back to pure probability filtering — identical to the original behaviour.
+ *
+ * ─── Complexity ──────────────────────────────────────────────────────────────
+ * Time : O(W)  |  Space: O(W)   (W = merged word count)
  */
 
 const PUNCT_RE = /^\p{P}+$/u;
 
 /**
- * Filters words by probability threshold and joins them into a string.
+ * Filters words by the probability+entropy criterion and joins survivors
+ * into a compressed string.
  *
- * A word is KEPT when:
- *   - it is the first word and alwaysKeepFirst is true, OR
- *   - its joint probability is BELOW threshold (surprising → informative)
- *
- * A word is REMOVED when its probability is >= threshold (predictable → redundant).
- *
- * @param {{ text: string, probability: number, tokenCount: number }[]} mergedWords
- * @param {number}  [threshold=0.7]        Drop words at or above this probability
- * @param {boolean} [alwaysKeepFirst=true] Pin the first word regardless
+ * @param {{ text: string, probability: number, entropy: number, tokenCount: number }[]} mergedWords
+ * @param {number}  [probThreshold=0.7]             Keep if probability < this
+ * @param {number}  [entropyThreshold=-Infinity]     Keep if entropy > this (bits)
+ * @param {boolean} [alwaysKeepFirst=true]           Pin the first word regardless
  * @returns {{ text: string, kept: object[], removed: object[] }}
  */
 export function compressAndJoin(
   mergedWords,
-  threshold = 0.7,
+  probThreshold = 0.7,
+  entropyThreshold = -Infinity,
   alwaysKeepFirst = true,
 ) {
-  const keep = (prob) => prob < threshold;
-
   const kept = [];
   const removed = [];
 
-  // --- Filter pass ---
   for (let i = 0; i < mergedWords.length; i++) {
     const w = mergedWords[i];
 
@@ -44,15 +50,18 @@ export function compressAndJoin(
       kept.push(w);
       continue;
     }
-    if (keep(w.probability)) kept.push(w);
+
+    const surprisingByProb = w.probability < probThreshold;
+    const uncertainByEntropy = w.entropy > entropyThreshold;
+
+    if (surprisingByProb || uncertainByEntropy) kept.push(w);
     else removed.push(w);
   }
 
-  // --- String reconstruction: parts[] + single join = O(W) ---
+  // String reconstruction: parts[] + single join = O(W)
   const parts = [];
   for (let i = 0; i < kept.length; i++) {
     const { text } = kept[i];
-    // No space before the first word or before punctuation
     if (i === 0 || PUNCT_RE.test(text)) parts.push(text);
     else parts.push(" " + text);
   }

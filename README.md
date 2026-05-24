@@ -1,33 +1,208 @@
-# project-void
+# Project Void
 
-Entropy-aware prompt compression for LLMs.
+Entropy-aware prompt compression for large language models.
 
-## Install
+Project Void analyzes token probability and entropy to remove low-information tokens while preserving semantic structure.
+
+Designed for:
+
+- Prompt optimization
+- Token-cost reduction
+- LLM preprocessing pipelines
+- Entropy-based NLP experiments
+
+---
+
+## Installation
 
 ```bash
-npm install project-void
+npm install project_void
 ```
+
+---
 
 ## Usage
 
-```js
-import { compressPrompt } from "project-void";
+### Probability mode
+
+```javascript
+import { compressPrompt } from "project_void";
 
 const result = await compressPrompt(
   "Xenova/gpt2",
   "What is the capital city of France Bakuradze?",
-  0.005,
-  3,
+  {
+    probability: 0.1,
+  },
 );
 
 console.log(result.text);
 ```
 
+---
+
+### Entropy mode
+
+```javascript
+import { compressPrompt } from "project_void";
+
+const result = await compressPrompt(
+  "Xenova/gpt2",
+  "What is the capital city of France Bakuradze?",
+  {
+    entropy: 7,
+  },
+);
+
+console.log(result.text);
+```
+
+---
+
+## Full Example
+
+```javascript
+import { compressPrompt } from "project_void";
+
+const prompt = "What is the capital city of France Bakuradze?";
+
+const result = await compressPrompt("Xenova/gpt2", prompt, {
+  probability: 0.1,
+});
+
+const originalTokenCount =
+  result.kept.reduce((s, w) => s + w.tokenCount, 0) +
+  result.removed.reduce((s, w) => s + w.tokenCount, 0);
+
+const compressedTokenCount = result.kept.reduce((s, w) => s + w.tokenCount, 0);
+
+console.log(`Original: "${prompt}" (${originalTokenCount} tokens)`);
+
+console.log(
+  `Compressed: "${result.text.trim()}" (${compressedTokenCount} tokens)`,
+);
+
+console.log("\nKept:");
+
+for (const w of result.kept) {
+  console.log(
+    `"${w.text}" prob=${w.probability.toFixed(4)} entropy=${w.entropy.toFixed(2)} bits`,
+  );
+}
+
+console.log("\nRemoved:");
+
+for (const w of result.removed) {
+  console.log(
+    `"${w.text}" prob=${w.probability.toFixed(4)} entropy=${w.entropy.toFixed(2)} bits`,
+  );
+}
+```
+
+---
+
 ## API
 
-### compressPrompt(model, prompt, probability, entropy?)
+## `compressPrompt(model, prompt, options)`
 
-- `model`: HF model string
-- `prompt`: input text
-- `probability`: compression threshold
-- `entropy`: optional entropy threshold
+Compresses text using token-level probability or entropy filtering.
+
+### Parameters
+
+| Name                  | Type     | Description                             |
+| --------------------- | -------- | --------------------------------------- |
+| `model`               | `string` | Hugging Face model identifier           |
+| `prompt`              | `string` | Input text                              |
+| `options.probability` | `number` | Keep tokens below probability threshold |
+| `options.entropy`     | `number` | Keep tokens above entropy threshold     |
+
+Use **either**:
+
+- `probability`
+
+or
+
+- `entropy`
+
+---
+
+## Returns
+
+```javascript
+{
+  text: string,
+  kept: Word[],
+  removed: Word[]
+}
+```
+
+Each word contains:
+
+```javascript
+{
+  text: string,
+  probability: number,
+  entropy: number,
+  tokenCount: number
+}
+```
+
+---
+
+## Compression Strategy
+
+### Probability mode
+
+Keeps low-probability (informative) tokens.
+
+---
+
+### Entropy mode
+
+Keeps high-entropy (uncertain / information-rich) tokens.
+
+---
+
+## Example Output
+
+```javascript
+{
+  text: "capital France Bakuradze",
+  kept: [...],
+  removed: [...]
+}
+```
+
+---
+
+## Features
+
+- Token probability pruning
+- Entropy-based filtering
+- Claude Shannon information theory
+- Hugging Face transformer support
+- Lightweight ESM package
+- Token-level analysis output
+- Research-friendly compression pipeline
+
+---
+
+## Use Cases
+
+- Reduce LLM prompt cost
+- Compress retrieval context
+- Token saliency analysis
+- Prompt engineering experiments
+- Information-density filtering
+
+---
+
+## License
+
+MIT
+
+---
+
+## Author
+
+Saba Bakuradze

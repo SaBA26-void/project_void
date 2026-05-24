@@ -1,14 +1,25 @@
 {
-  "name": "project_void",
-  "version": "1.0.0",
+  "name": "project-void",
+  "version": "1.0.1",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "llm",
+    "prompt-compression",
+    "entropy",
+    "probability",
+    "token-compression",
+    "nlp",
+    "transformers",
+    "huggingface",
+    "prompt-optimization",
+    "ai"
+  ],
   "author": "Saba Bakuradze",
-  "license": "ISC",
+  "license": "MIT",
   "description": "LLM antropy token comresion",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0"

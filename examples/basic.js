@@ -1,6 +1,6 @@
 import { compressPrompt } from "../src/index.js";
 
-const prompt = "What is the capital city of France Bakuradze?";
+const prompt = "What is the capital city of France?";
 
 // --------------------
 // PROBABILITY MODE

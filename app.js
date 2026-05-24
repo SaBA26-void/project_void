@@ -1,87 +1,84 @@
 import { AutoTokenizer, AutoModelForCausalLM } from "@huggingface/transformers";
 
-// 1. Pure Function: Slice 1D flat tensor array into a 2D matrix (Tokens x Vocabulary)
-const chunkTensor = (tensorData, vocabSize) => {
-    const chunks = [];
-    const numTokens = tensorData.length / vocabSize;
+// Pure Lambda: Slices flat Float32Array into token chunks
+const chunkTensor = (tensorData, vocabSize) =>
+  Array.from({ length: tensorData.length / vocabSize }, (_, i) =>
+    tensorData.subarray(i * vocabSize, (i + 1) * vocabSize),
+  );
 
-    for (let i = 0; i < numTokens; i++) {
-        const start = i * vocabSize;
-        const end = start + vocabSize;
-        chunks.push(tensorData.subarray(start, end));
-    }
-    return chunks;
-};
-
-// 2. Pure Function: Numerically stable Softmax for a single token slice
+// Pure Lambda: Stable Softmax
 const computeSoftmax = (logits) => {
-    let maxLogit = -Infinity;
-    for (let i = 0; i < logits.length; i++) {
-        if (logits[i] > maxLogit) maxLogit = logits[i];
-    }
-
-    const probabilities = new Float32Array(logits.length);
-    let sumExp = 0;
-
-    for (let i = 0; i < logits.length; i++) {
-        const expVal = Math.exp(logits[i] - maxLogit);
-        probabilities[i] = expVal;
-        sumExp += expVal;
-    }
-
-    for (let i = 0; i < probabilities.length; i++) {
-        probabilities[i] /= sumExp;
-    }
-
-    return probabilities;
+  const maxLogit = Math.max(...logits); // Note: For massive vocabularies, a standard loop is faster, but this is highly declarative
+  const exps = logits.map((v) => Math.exp(v - maxLogit));
+  const sumExp = exps.reduce((a, b) => a + b, 0);
+  return exps.map((v) => v / sumExp);
 };
 
-// 3. Main Execution Function
-const analyzePromptProbabilities = async (promptText) => {
-    const modelName = "Xenova/gpt2";
+/**
+ * Compresses a prompt by stripping tokens that cross a predictability threshold.
+ */
+const compressPrompt = async (promptText, threshold = 0.15) => {
+  const modelName = "Xenova/gpt2";
 
-    try {
-        const tokenizer = await AutoTokenizer.from_pretrained(modelName);
-        const model = await AutoModelForCausalLM.from_pretrained(modelName);
+  try {
+    const tokenizer = await AutoTokenizer.from_pretrained(modelName);
+    const model = await AutoModelForCausalLM.from_pretrained(modelName);
 
-        // Tokenize prompt to get sequence input IDs
-        const encoded = await tokenizer(promptText);
-        const inputIds = encoded.input_ids.data; // Int32Array of token IDs
+    const encoded = await tokenizer(promptText);
+    const inputIds = Array.from(encoded.input_ids.data); // Convert Int32Array to standard JS Array
 
-        // Run the model forward pass
-        const modelGen = await model(encoded);
-        const tensorData = modelGen.logits.data;
-        const vocabSize = modelGen.logits.dims[2];
+    const modelGen = await model(encoded);
+    const tensorData = modelGen.logits.data;
+    const vocabSize = modelGen.logits.dims[2];
 
-        // Break the raw logits down by sequence positions
-        const logitChunks = chunkTensor(tensorData, vocabSize);
+    // 1. Chunk the logits per sequence position
+    const logitChunks = chunkTensor(tensorData, vocabSize);
 
-        console.log(`\nAnalyzing sequence probabilities for: "${promptText}"\n`);
-        console.log(`------------------------------------------------------------`);
+    // 2. Map every input token to an object containing its metadata and calculated probability
+    const tokenAnalysisPipeline = inputIds.map((id, index) => {
+      const tokenText = tokenizer.decode([id]);
 
-        // We loop up to logitChunks.length - 1 because the very last chunk 
-        // predicts a future token outside our current prompt.
-        for (let i = 0; i < logitChunks.length - 1; i++) {
-            const currentTokenId = inputIds[i];
-            const nextTokenId = inputIds[i + 1];
+      // The first token has no prior context in this loop sequence setup, assign 0 probability baseline
+      if (index === 0) {
+        return { id, text: tokenText, probability: 0 };
+      }
 
-            const currentTokenText = tokenizer.decode([currentTokenId]);
-            const nextTokenText = tokenizer.decode([nextTokenId]);
+      // Get the distribution from the step BEFORE this token appeared
+      const priorDistribution = computeSoftmax(logitChunks[index - 1]);
+      const probability = priorDistribution[id];
 
-            // Transform raw logits at step i to a valid probability distribution
-            const probabilities = computeSoftmax(logitChunks[i]);
+      return { id, text: tokenText, probability };
+    });
 
-            // Look up the probability assigned to the token that actually followed
-            const actualTokenProbability = probabilities[nextTokenId];
-            const percentage = (actualTokenProbability * 100).toFixed(4);
+    console.log("--- Token Probability Analysis ---");
+    tokenAnalysisPipeline.forEach((t) =>
+      console.log(
+        `Token: "${t.text.trim()}" | Prob: ${(t.probability * 100).toFixed(2)}%`,
+      ),
+    );
 
-            console.log(`Given: [${currentTokenText.trim()}] -> Probability of next token [${nextTokenText.trim()}]: ${percentage}%`);
-        }
-        console.log(`------------------------------------------------------------`);
+    // 3. Filter out tokens that exceed our redundancy threshold
+    const compressedTokens = tokenAnalysisPipeline.filter((token) => {
+      const isRedundant = token.probability > threshold;
+      return !isRedundant; // Keep only if NOT redundant
+    });
 
-    } catch (error) {
-        console.error("Error analyzing sequence:", error);
-    }
+    // 4. Reconstruct text from the surviving token IDs
+    const compressedIds = compressedTokens.map((t) => t.id);
+    const compressedText = tokenizer.decode(compressedIds);
+
+    console.log("\n--- Compression Results ---");
+    console.log(`Original:   "${promptText}" (${inputIds.length} tokens)`);
+    console.log(
+      `Compressed: "${compressedText.trim()}" (${compressedIds.length} tokens)`,
+    );
+  } catch (error) {
+    console.error("Compression Pipeline Error:", error);
+  }
 };
 
-analyzePromptProbabilities("What is the capital city of France?");
+// Run with a 15% predictability limit
+compressPrompt(
+  "Tbilisi is Georgia’s capital and the second‑largest city in the region after Baku, the capital of Azerbaijan.",
+  0.1,
+);

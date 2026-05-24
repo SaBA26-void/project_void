@@ -23,13 +23,13 @@
  *   compressAndJoin  →  result
  */
 
-import { loadTokenizer, encodePrompt } from "./tokenizer.js";
-import { loadModel, genLogits } from "./model.js";
+import { loadTokenizer, encodePrompt } from "./Tokenizer.js";
+import { loadModel, genLogits } from "./Model.js";
 import { chopper } from "./chopper.js";
-import { softMax } from "./softmax.js";
+import { softMax } from "./Softmax.js";
 import { computeEntropy } from "./entropy.js";
-import { tokenProbMaper } from "./probability.js";
-import { mergeSubTokensToWords } from "./merger.js";
+import { tokenProbMaper } from "./Probability.js";
+import { mergeSubTokensToWords } from "../merger.js";
 import { compressAndJoin } from "./compressor.js";
 
 const MODEL_ID = "Xenova/gpt2";

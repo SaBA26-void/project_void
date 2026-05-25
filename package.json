@@ -1,10 +1,23 @@
 {
   "name": "project_void",
-  "version": "1.0.3",
-  "main": "index.js",
+  "version": "1.0.4",
+  "description": "LLM entropy-aware token compression for prompts",
   "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "example": "node examples/basic.js",
+    "prepack": "node --check src/index.js"
   },
   "keywords": [
     "llm",
@@ -20,7 +33,6 @@
   ],
   "author": "Saba Bakuradze",
   "license": "MIT",
-  "description": "LLM antropy token comresion",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0"
   }

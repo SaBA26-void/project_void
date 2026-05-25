@@ -15,9 +15,17 @@ Designed for:
 
 ## Installation
 
+Requires **Node.js 18+**.
+
 ```bash
 npm install project_void
 ```
+
+On first use, the Hugging Face model (e.g. `Xenova/gpt2`) is downloaded from the network and cached locally.
+
+### Install size
+
+The published `project_void` package is small (source only). `npm install` also pulls in `@huggingface/transformers` (ONNX Runtime, native addons), which is typically **hundreds of MB** on disk. That footprint comes from running a local causal LM, not from this library’s compression code.
 
 ---
 
@@ -103,7 +111,7 @@ for (const w of result.removed) {
 
 ## API
 
-## `compressPrompt(model, prompt, options)`
+## `compressPrompt(modelId, prompt, options)`
 
 Compresses text using token-level probability or entropy filtering.
 
@@ -111,7 +119,7 @@ Compresses text using token-level probability or entropy filtering.
 
 | Name                  | Type     | Description                             |
 | --------------------- | -------- | --------------------------------------- |
-| `model`               | `string` | Hugging Face model identifier           |
+| `modelId`             | `string` | Hugging Face model identifier (e.g. `Xenova/gpt2`) |
 | `prompt`              | `string` | Input text                              |
 | `options.probability` | `number` | Keep tokens below probability threshold |
 | `options.entropy`     | `number` | Keep tokens above entropy threshold     |
@@ -180,8 +188,8 @@ Keeps high-entropy (uncertain / information-rich) tokens.
 - Token probability pruning
 - Entropy-based filtering
 - Claude Shannon information theory
-- Hugging Face transformer support
-- Lightweight ESM package
+- Hugging Face transformer support (`@huggingface/transformers`)
+- ESM package with a single public export: `compressPrompt`
 - Token-level analysis output
 - Research-friendly compression pipeline
 

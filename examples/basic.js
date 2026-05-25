@@ -1,4 +1,4 @@
-import { compressPrompt } from "../src/index.js";
+import { compressPrompt } from "project_void";
 
 const prompt = "What is the capital city of France?";
 

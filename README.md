@@ -40,7 +40,7 @@ import { compressPrompt } from "project_void";
 
 const result = await compressPrompt(
   "Xenova/gpt2",
-  "What is the capital city of France Bakuradze?",
+  "What is the capital city of France?",
   {
     probability: 0.1,
   },
@@ -58,7 +58,7 @@ import { compressPrompt } from "project_void";
 
 const result = await compressPrompt(
   "Xenova/gpt2",
-  "What is the capital city of France Bakuradze?",
+  "What is the capital city of France?",
   {
     entropy: 7,
   },
@@ -74,7 +74,7 @@ console.log(result.text);
 ```javascript
 import { compressPrompt } from "project_void";
 
-const prompt = "What is the capital city of France Bakuradze?";
+const prompt = "What is the capital city of France?";
 
 const result = await compressPrompt("Xenova/gpt2", prompt, {
   probability: 0.1,
@@ -119,12 +119,12 @@ Compresses text using token-level probability or entropy filtering.
 
 ### Parameters
 
-| Name                  | Type     | Description                             |
-| --------------------- | -------- | --------------------------------------- |
+| Name                  | Type     | Description                                        |
+| --------------------- | -------- | -------------------------------------------------- |
 | `modelId`             | `string` | Hugging Face model identifier (e.g. `Xenova/gpt2`) |
-| `prompt`              | `string` | Input text                              |
-| `options.probability` | `number` | Keep tokens below probability threshold |
-| `options.entropy`     | `number` | Keep tokens above entropy threshold     |
+| `prompt`              | `string` | Input text                                         |
+| `options.probability` | `number` | Keep tokens below probability threshold            |
+| `options.entropy`     | `number` | Keep tokens above entropy threshold                |
 
 Use **either**:
 
@@ -177,7 +177,7 @@ Keeps high-entropy (uncertain / information-rich) tokens.
 
 ```javascript
 {
-  text: "capital France Bakuradze",
+  text: "capital France",
   kept: [...],
   removed: [...]
 }

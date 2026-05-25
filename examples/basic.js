@@ -5,10 +5,9 @@ const prompt = "What is the capital city of France?";
 // --------------------
 // PROBABILITY MODE
 // --------------------
-const result = await compressPrompt("Xenova/gpt2", prompt, {
+const result = await compressPrompt("Xenova/gpt2", { dtype: "q4" }, prompt, {
   probability: 0.1,
 });
-
 // OR entropy mode:
 // const result = await compressPrompt(
 //   "Xenova/gpt2",

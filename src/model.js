@@ -9,14 +9,26 @@
 
 import { AutoModelForCausalLM } from "@huggingface/transformers";
 
+const VALID_DTYPES = new Set(["q4", "q5", "q8", "fp16", "fp32"]);
+
 /**
  * Loads and returns the causal LM for the given model ID.
  *
  * @param {string} modelId
+ * @param {{dtype?: "q4"|"q5"|"q8"|"fp16"|"fp32"}} [quantization]
  * @returns {Promise<object>} model instance
  */
-export async function loadModel(modelId = "Xenova/gpt2") {
-  return AutoModelForCausalLM.from_pretrained(modelId);
+export async function loadModel(
+  modelId = "Xenova/gpt2",
+  { dtype = "fp16" } = {},
+) {
+  if (!VALID_DTYPES.has(dtype)) {
+    throw new Error(
+      `Invalid dtype "${dtype}". Must be one of: q4, q5, q8, fp16, fp32`,
+    );
+  }
+
+  return AutoModelForCausalLM.from_pretrained(modelId, { dtype });
 }
 
 /**

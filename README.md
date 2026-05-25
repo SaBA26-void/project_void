@@ -40,6 +40,8 @@ import { compressPrompt } from "project_void";
 
 const result = await compressPrompt(
   "Xenova/gpt2",
+  // optional
+  { dtype: "fp32" }, // "q4"|"q5"|"q8"|"fp16"|"fp32"   by default {dtype = "fp16"}
   "What is the capital city of France?",
   {
     probability: 0.1,
@@ -56,13 +58,13 @@ console.log(result.text);
 ```javascript
 import { compressPrompt } from "project_void";
 
-const result = await compressPrompt(
-  "Xenova/gpt2",
-  "What is the capital city of France?",
-  {
-    entropy: 7,
-  },
-);
+const result = await compressPrompt("Xenova/gpt2", {}, prompt, { entropy: 7 });
+
+// or with explicit dtype:
+
+const result = await compressPrompt("Xenova/gpt2", { dtype: "q8" }, prompt, {
+  entropy: 7,
+});
 
 console.log(result.text);
 ```
@@ -76,7 +78,7 @@ import { compressPrompt } from "project_void";
 
 const prompt = "What is the capital city of France?";
 
-const result = await compressPrompt("Xenova/gpt2", prompt, {
+const result = await compressPrompt("Xenova/gpt2", {}, prompt, {
   probability: 0.1,
 });
 
@@ -113,7 +115,7 @@ for (const w of result.removed) {
 
 ## API
 
-## `compressPrompt(modelId, prompt, options)`
+## `compressPrompt(modelId,  quantization, prompt, options)`
 
 Compresses text using token-level probability or entropy filtering.
 
@@ -122,6 +124,7 @@ Compresses text using token-level probability or entropy filtering.
 | Name                  | Type     | Description                                        |
 | --------------------- | -------- | -------------------------------------------------- |
 | `modelId`             | `string` | Hugging Face model identifier (e.g. `Xenova/gpt2`) |
+| `quantization`        | `object` | quantization alocas q4 4 bits fp16 16bits etc      |
 | `prompt`              | `string` | Input text                                         |
 | `options.probability` | `number` | Keep tokens below probability threshold            |
 | `options.entropy`     | `number` | Keep tokens above entropy threshold                |
@@ -156,6 +159,14 @@ Each word contains:
   tokenCount: number
 }
 ```
+
+---
+
+Mutual exclusivity: you must pass probability or entropy, not both; omitting both throws.
+First word always kept: compressAndJoin uses alwaysKeepFirst = true, so the first word is never removed regardless of threshold.
+Word shape: returned words also include id and ids (internal fields from merging), not just text, probability, entropy, tokenCount.
+
+---
 
 ---
 

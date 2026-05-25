@@ -14,7 +14,12 @@ import { compressAndJoin } from "./compressor.js";
  *  - probability: number (mode A)
  *  - entropy: number (mode B)
  */
-export async function compressPrompt(modelId, prompt, options = {}) {
+export async function compressPrompt(
+  modelId,
+  quantization,
+  prompt,
+  options = {},
+) {
   const { probability, entropy } = options;
 
   // enforce mutual exclusivity
@@ -31,7 +36,7 @@ export async function compressPrompt(modelId, prompt, options = {}) {
   // 1. load model + tokenizer
   const [tokenizer, model] = await Promise.all([
     loadTokenizer(modelId),
-    loadModel(modelId),
+    loadModel(modelId, quantization),
   ]);
 
   // 2. encode prompt

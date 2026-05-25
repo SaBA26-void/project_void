@@ -1,6 +1,6 @@
 {
   "name": "project_void",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "LLM entropy-aware token compression for prompts",
   "type": "module",
   "main": "./src/index.js",

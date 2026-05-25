@@ -1,5 +1,7 @@
 # Project Void
 
+**Repository:** [github.com/SaBA26-void/project_void](https://github.com/SaBA26-void/project_void) · **Author:** [@SaBA26-void](https://github.com/SaBA26-void)
+
 Entropy-aware prompt compression for large language models.
 
 Project Void analyzes token probability and entropy to remove low-information tokens while preserving semantic structure.
@@ -213,4 +215,7 @@ MIT
 
 ## Author
 
-Saba Bakuradze
+**Saba Bakuradze** — [@SaBA26-void](https://github.com/SaBA26-void)
+
+- Project repository: [SaBA26-void/project_void](https://github.com/SaBA26-void/project_void)
+- GitHub profile: [github.com/SaBA26-void](https://github.com/SaBA26-void)

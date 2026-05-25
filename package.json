@@ -31,7 +31,18 @@
     "prompt-optimization",
     "ai"
   ],
-  "author": "Saba Bakuradze",
+  "author": {
+    "name": "Saba Bakuradze",
+    "url": "https://github.com/SaBA26-void"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaBA26-void/project_void.git"
+  },
+  "homepage": "https://github.com/SaBA26-void/project_void#readme",
+  "bugs": {
+    "url": "https://github.com/SaBA26-void/project_void/issues"
+  },
   "license": "MIT",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0"
